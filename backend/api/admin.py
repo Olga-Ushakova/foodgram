@@ -1,11 +1,11 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from . import models
 
 
-@admin.register(models.CustomUser)
-class CustomUserAdmin(UserAdmin):
+@admin.register(models.User)
+class UserAdmin(BaseUserAdmin):
     """Настройка админ-зоны для модели Пользователя."""
 
     list_display = ('username', 'first_name', 'last_name', 'email')
@@ -58,4 +58,3 @@ admin.site.register(models.Subscription)
 admin.site.register(models.IngredientInRecipe)
 admin.site.register(models.ShoppingCart)
 admin.site.register(models.Favorite)
-admin.site.register(models.RecipeShortLink)

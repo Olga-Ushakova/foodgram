@@ -99,7 +99,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'api.CustomUser'
+AUTH_USER_MODEL = 'api.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -112,6 +112,16 @@ REST_FRAMEWORK = {
 }
 
 DJOSER = {
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
+    },
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny']
+    },
     'LOGIN_FIELD': 'email',
-    'USER_ID_FIELD': 'id',
+    'HIDE_USERS': False
 }
+
+# Базовая часть ссылки для формирования короткой ссылки на рецепт
+BASE_LINK = os.getenv('BASE_LINK', 'https://project.net/s/')

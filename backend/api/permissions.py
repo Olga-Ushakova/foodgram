@@ -4,8 +4,8 @@ from rest_framework import permissions
 class IsAuthenticatedAuthorOrReadOnly(permissions.BasePermission):
     """
     Разрешает:
-    - Читать всем.
-    - Создавать аутентифицированным пользователям.
+    - Читать: всем.
+    - Создавать: аутентифицированным пользователям.
     - Редактировать / удалять: автору.
     """
 

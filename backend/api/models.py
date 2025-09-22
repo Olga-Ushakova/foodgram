@@ -1,20 +1,16 @@
+import random
+import string
+
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from . import constants
 
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     """Расширенная модель пользователя."""
 
-    username = models.CharField(
-        'Никнейм',
-        max_length=constants.NAME_MAX_LENGTH,
-        unique=True,
-        validators=[UnicodeUsernameValidator()],
-    )
     first_name = models.CharField(
         'Имя',
         max_length=constants.NAME_MAX_LENGTH
@@ -25,7 +21,6 @@ class CustomUser(AbstractUser):
     )
     email = models.EmailField(
         'Электронная почта',
-        max_length=constants.EMAIL_MAX_LENGTH,
         unique=True
     )
     avatar = models.ImageField(
@@ -46,13 +41,13 @@ class Subscription(models.Model):
     """Модель подписки на пользователя."""
 
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='subscribers',
         verbose_name='Пользователь'
     )
     subscriber = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='subscriptions',
         verbose_name='Подписчик'
@@ -92,6 +87,12 @@ class Ingredient(models.Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'measurement_unit'],
+                name='unique_name_measurement_unit'
+            )
+        ]
 
     def __str__(self):
         return self.name
@@ -131,12 +132,28 @@ class Recipe(models.Model):
     image = models.ImageField('Картинка', upload_to='recipes/images/')
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
-        validators=[MinValueValidator(constants.COOK_TIME_MIN_VALUE)],
+        validators=[
+            MinValueValidator(
+                constants.COOK_TIME_MIN_VALUE,
+                'Время приготовления должно быть положительным целым числом.'
+            ),
+            MaxValueValidator(
+                constants.COOK_TIME_MAX_VALUE,
+                ('Время приготовления не должно превышать '
+                 f'{constants.COOK_TIME_MAX_VALUE} минут.')
+            )
+        ],
         help_text='Время приготовления в минутах.'
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    short_code = models.CharField(
+        'Короткий код',
+        max_length=constants.MAX_CODE_LENGTH,
+        unique=True,
+        blank=True
+    )
     author = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         verbose_name='Автор'
     )
@@ -152,6 +169,22 @@ class Recipe(models.Model):
         verbose_name_plural = 'Рецепты'
         default_related_name = 'recipes'
         ordering = ('-pub_date',)
+
+    @staticmethod
+    def generate_short_code(length=constants.MAX_CODE_LENGTH):
+        """Метод создания кода для короткой ссылки на рецепт."""
+        characters = string.ascii_lowercase + string.digits
+        return ''.join(random.choice(characters) for _ in range(length))
+
+    def save(self, *args, **kwargs):
+        if not self.short_code:
+            while True:
+                code = self.generate_short_code()
+                if not Recipe.objects.filter(short_code=code).exists():
+                    self.short_code = code
+                    break
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -174,7 +207,17 @@ class IngredientInRecipe(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         'Количество',
-        validators=[MinValueValidator(constants.AMOUNT_MIN_VALUE)]
+        validators=[
+            MinValueValidator(
+                constants.AMOUNT_MIN_VALUE,
+                'Кол-во ингредиента должно быть положительным целым числом.'
+            ),
+            MaxValueValidator(
+                constants.AMOUNT_MAX_VALUE,
+                ('Кол-во ингредиента не должно превышать '
+                 f'{constants.AMOUNT_MAX_VALUE}.')
+            )
+        ],
     )
 
     class Meta:
@@ -196,7 +239,7 @@ class ShoppingCart(models.Model):
     """Модель списка покупок."""
 
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         verbose_name='Пользователь'
     )
@@ -226,7 +269,7 @@ class Favorite(models.Model):
     """Модель для избранных рецептов."""
 
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         verbose_name='Пользователь'
     )
@@ -249,31 +292,3 @@ class Favorite(models.Model):
 
     def __str__(self):
         return (f'{self.user} добавил(а) рецепт "{self.recipe}" в Избранное')
-
-
-class RecipeShortLink(models.Model):
-    """Модель для коротких ссыллок на рецепты."""
-
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт'
-    )
-    short_code = models.CharField(
-        max_length=constants.MAX_CODE_LENGTH,
-        unique=True,
-        verbose_name='Код'
-    )
-
-    class Meta:
-        verbose_name = 'Короткая ссылка'
-        verbose_name_plural = 'Короткие ссылки'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['recipe', 'short_code'],
-                name='unique_short_code_for_recipe'
-            )
-        ]
-
-    def __str__(self):
-        return f'Короткая ссылка на рецепт "{self.recipe}"'
