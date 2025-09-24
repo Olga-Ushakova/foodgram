@@ -228,5 +228,5 @@ class RecipeViewSet(viewsets.ModelViewSet):
 def short_link_redirect(request, short_code):
     """Функция для перенаправления на страницу рецепта по короткой ссылке."""
     recipe = get_object_or_404(models.Recipe, short_code=short_code)
-    recipe_url = request.build_absolute_uri(f'/api/recipes/{recipe.id}/')
+    recipe_url = request.build_absolute_uri(f'/recipes/{recipe.id}/')
     return HttpResponseRedirect(recipe_url)
