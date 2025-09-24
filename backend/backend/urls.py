@@ -5,9 +5,9 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path('s/<str:short_code>/', short_link_redirect, name='shortlink'),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('s/<str:short_code>/', short_link_redirect, name='shortlink'),
 ]
 
 if settings.DEBUG:
