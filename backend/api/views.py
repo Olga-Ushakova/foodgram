@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import exceptions, status, viewsets
@@ -228,5 +228,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
 def short_link_redirect(request, short_code):
     """Функция для перенаправления на страницу рецепта по короткой ссылке."""
     recipe = get_object_or_404(models.Recipe, short_code=short_code)
-    recipe_url = request.build_absolute_uri(f'/recipes/{recipe.id}/')
-    return HttpResponseRedirect(recipe_url)
+    return redirect(f'/api/recipes/{recipe.id}/')
