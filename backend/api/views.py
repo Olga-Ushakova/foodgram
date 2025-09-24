@@ -27,9 +27,9 @@ class UserViewSet(DjoserUserViewSet):
     def subscribe(self, request, id):
         user = get_object_or_404(models.User, id=id)
         serializer = serializers.SubscriptionSerializer(
-            data={},
-            context={'request': request,
-                     'user': user}
+            data={'user': user.id,
+                  'subscriber': request.user.id},
+            context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -83,8 +83,12 @@ class UserViewSet(DjoserUserViewSet):
 
     @avatar.mapping.delete
     def delete_avatar(self, request):
-        serializer = serializers.UserAvatarSerializer(request.user)
-        serializer.check_avatar_exists()
+        serializer = serializers.UserAvatarSerializer(
+            request.user,
+            data={},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
         request.user.avatar.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -141,9 +145,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk):
         recipe = get_object_or_404(models.Recipe, id=pk)
         serializer = serializers.ShoppingCartSerializer(
-            data={},
-            context={'request': request,
-                     'recipe': recipe}
+            data={'user': request.user.id,
+                  'recipe': recipe.id}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -168,9 +171,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk):
         recipe = get_object_or_404(models.Recipe, id=pk)
         serializer = serializers.FavoriteSerializer(
-            data={},
-            context={'request': request,
-                     'recipe': recipe}
+            data={'user': request.user.id,
+                  'recipe': recipe.id}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

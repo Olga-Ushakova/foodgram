@@ -174,7 +174,7 @@ class Recipe(models.Model):
     def generate_short_code(length=constants.MAX_CODE_LENGTH):
         """Метод создания кода для короткой ссылки на рецепт."""
         characters = string.ascii_lowercase + string.digits
-        return ''.join(random.choice(characters) for _ in range(length))
+        return ''.join(random.choices(characters, k=length))
 
     def save(self, *args, **kwargs):
         if not self.short_code:

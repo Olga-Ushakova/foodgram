@@ -1,4 +1,5 @@
 from django.urls import include, path
+from django.views.generic import TemplateView
 from rest_framework import routers
 
 from . import views
@@ -29,4 +30,14 @@ router.register(
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
+    path('docs/',
+         TemplateView.as_view(template_name='docs/redoc.html'),
+         name='docs'
+         ),
+    path('docs/openapi-schema.yml',
+         TemplateView.as_view(
+             template_name='docs/openapi-schema.yml',
+             content_type='application/yaml'
+         ),
+         name='openapi-schema'),
 ]

@@ -27,17 +27,22 @@ class UserSerializer(serializers.ModelSerializer):
 class UserAvatarSerializer(serializers.ModelSerializer):
     """Сериализатор для работы с аватаром Пользователя."""
 
-    avatar = Base64ImageField()
+    avatar = Base64ImageField(required=False)
 
     class Meta:
         model = models.User
         fields = ('avatar',)
 
-    def check_avatar_exists(self):
-        """Проверяет, существует ли аватар у пользователя."""
-        if not self.instance.avatar:
-            raise serializers.ValidationError('Аватар не существует.')
-        return True
+    def validate(self, data):
+        if self.context.get('request').method == 'DELETE':
+            if not self.instance.avatar:
+                raise serializers.ValidationError('Аватар не существует.')
+        else:
+            if not data.get('avatar'):
+                raise serializers.ValidationError(
+                    'Ни одного файла не было отправлено.'
+                )
+        return data
 
 
 class UserWithRecipesSerializer(UserSerializer):
@@ -70,11 +75,11 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Subscription
-        fields = ()
+        fields = ('user', 'subscriber')
 
     def validate(self, data):
-        user = self.context.get('user')
-        subscriber = self.context.get('request').user
+        user = data['user']
+        subscriber = data['subscriber']
         if subscriber == user:
             raise serializers.ValidationError(
                 'Нельзя подписаться на самого себя.'
@@ -83,7 +88,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f'Уже подписаны на пользователя {user.username}.'
             )
-        return {'user': user, 'subscriber': subscriber}
+        return data
 
     def to_representation(self, instance):
         return UserWithRecipesSerializer(
@@ -254,17 +259,17 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.ShoppingCart
-        fields = ()
+        fields = ('user', 'recipe')
 
     def validate(self, data):
-        user = self.context.get('request').user
-        recipe = self.context.get('recipe')
+        user = data['user']
+        recipe = data['recipe']
         if user.shopping_cart.filter(recipe=recipe).exists():
             raise serializers.ValidationError(
                 f'Рецепт "{recipe.name}" с id={recipe.id} '
                 'уже добавлен в Список покупок.'
             )
-        return {'user': user, 'recipe': recipe}
+        return data
 
     def to_representation(self, instance):
         return RecipeMinifiedSerializer(
@@ -279,17 +284,17 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Favorite
-        fields = ()
+        fields = ('user', 'recipe')
 
     def validate(self, data):
-        user = self.context.get('request').user
-        recipe = self.context.get('recipe')
+        user = data['user']
+        recipe = data['recipe']
         if user.favorites.filter(recipe=recipe).exists():
             raise serializers.ValidationError(
                 f'Рецепт "{recipe.name}" с id={recipe.id} '
                 'уже добавлен в Избранное.'
             )
-        return {'user': user, 'recipe': recipe}
+        return data
 
     def to_representation(self, instance):
         return RecipeMinifiedSerializer(
